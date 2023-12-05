@@ -10,6 +10,7 @@ export default function Form() {
     })
 
     const[getData, setGetData] = useState([])
+    const [editItem, setEditItem] = useState(null)
      
     const onchangeHandler = (e) =>{
         // console.log(e);
@@ -22,6 +23,16 @@ export default function Form() {
     const formHandle = (e) =>{
         e.preventDefault()
         // console.log(e);
+        if(editItem){
+          updateData(editItem._id, user)
+        }else{
+          createUser()
+        }
+    }
+
+      const createUser = () => {
+        try {
+        
         axios.post('http://localhost:3001/form',user)
         .then((response)=>{
             console.log(response.data);
@@ -31,17 +42,47 @@ export default function Form() {
         console.log(data);
 
         setUser({ name: '', email:'', password:'', file:''})
-    }
+        .catch((error)=>{
+          console.log('error in create user', error);
+        })
+      } catch (error) {
+        console.log(error);
+      }
+        }
+       
+
+       
     useEffect(()=>{
         axios.get('http://localhost:3001/getAllData')
         .then((res)=>{
             // console.log(res.data);
             setGetData(res.data)
         })
-       },[])
+       },[getData])
 
        const removeData = (id)=>{
-        console.log('delete',id);
+        axios.delete(`http://localhost:3001/delete/${id}`)
+        .then((del)=>{
+            console.log('delete',del);
+            setGetData(getData.filter((item)=> item._id !== id))
+        })
+       }
+
+       const updateData = (id, updatedUser) =>{
+        axios.put(`http://localhost:3001/edit/${id}`, updatedUser)
+        .then((update)=>{
+          console.log('update',update);
+          setEditItem(null)
+          setUser({name:'', email:'', password:'', file:''})
+        }).catch((err)=>{
+          console.log('error updating', err);
+        })
+       }
+
+       const editData = (id) => {
+        const selectedItem = getData.find((item)=> item._id === id);
+        setEditItem(selectedItem)
+        setUser(selectedItem)
        }
 
   return (
@@ -64,31 +105,32 @@ export default function Form() {
             <input className="custom-input" type='file' name='file' value={user.file} onChange={onchangeHandler}  />
           </div>
           <div style={{ textAlign: 'center' }}>
-            <button style={{ padding: '15px', width: "60%", color: 'gold', backgroundColor: 'indigo', border: 'none', borderRadius: '8px', marginBottom: '10px', cursor: 'pointer' }}>Submit</button>
+            <button style={{ padding: '15px', width: "60%", color: 'gold', backgroundColor: 'indigo', border: 'none', borderRadius: '8px', marginBottom: '10px', cursor: 'pointer' }}>{editItem ? 'Update' : 'Submit'}</button>
           </div>
         </form>
       </div>
 
 
-      <table border = '1'>
+      <table border = '1' style={{marginTop:'20px'}}>
         <tr>
         <th>Name</th>
         <th>Email</th>
         <th>password</th>
+        <th>ImgURL</th>
         <th>Remove</th>
         <th>Update</th>
         </tr>
         <tbody>
             {
                 getData.map((data)=>{
-                    {/* console.log(data) */}
                     return (<>
                         <tr>
                         <td>{data.name}</td>
                         <td>{data.email}</td>
                         <td>{data.password}</td>
-                        <td><button onClick={removeData}>Delete</button></td>
-                        <td><button>Eidt</button></td>
+                        <td>{data.file}</td>
+                        <td><button onClick={()=>removeData(data._id)} style={{backgroundColor:'indigo', color:'gold',width:'70px',border:'none',padding:'6px', cursor:'pointer'}} >Delete</button></td>
+                        <td><button onClick={()=>editData(data._id)} style={{backgroundColor:'indigo', color:'gold',width:'70px',border:'none',padding:'6px', cursor:'pointer'}} >Edit</button></td>
                     </tr>
                     </>
 

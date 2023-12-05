@@ -3,6 +3,8 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const mongoose = require('mongoose')
+const multer = require('multer')
+const path = require('path')
 const port = 3001;
 
 mongoose.connect('mongodb://localhost:27017/main-crud-assignment', {})
@@ -11,7 +13,7 @@ const userSchema = new mongoose.Schema({
   name: String,
   email: String,
   password: String,
-  file: String
+  imgURL: String
 });
 
 const UserModel = mongoose.model('Users', userSchema);
@@ -19,19 +21,42 @@ mongoose.connect('mongodb://localhost:27017/main-crud-assignment', {});
 
 app.use(cors());
 app.use(express.json());
+// send to database
+app.use('/image', express.static(path.join(__dirname, 'uploads')));
+
+/////// MULTER ////////
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, 'uploads'));
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname)
+  }
+})
+
+const upload = multer({ storage: storage })
 
 // Create User
-app.post('/form', async (req, res) => {
+app.post('/form',upload.single('img'), async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    const newUser = new UserModel({ name, email, password });
+    const { name, email, password, } = req.body;
+    const existingUser = await UserModel.findOne({ email });
+    if (existingUser) {
+      return res.json({ message: 'User already exists' });
+    }
+
+    const newUser = new UserModel({ name, email, password,});
+    // imgURL:imgPath,
     await newUser.save();
-    res.json(newUser);
+    const imgPath = `http://localhost:3001/image/${req.file.filename}`
+    res.json({newUser,imgPath });
   } catch (error) {
     console.error('Error creating user:', error);
-    res.send('Error');
+    res.json({ message: 'Error creating user' });
   }
 });
+
 
 // Get All Users
 app.get('/getAllData', async (req, res) => {
@@ -51,7 +76,7 @@ app.get('/oneUser/:id', async (req, res) => {
     res.json(user);
   } catch (error) {
     console.error('Error fetching user by ID:', error);
-    res.send(' Error');
+    res.send(' Error in getOne User');
   }
 });
 
@@ -66,7 +91,7 @@ app.put('/edit/:id', async (req, res) => {
     res.json(updatedUser);
   } catch (error) {
     console.error('Error updating user by ID:', error);
-    res.send(' Error');
+    res.send(' Error in update');
   }
 });
 
@@ -77,9 +102,10 @@ app.delete('/delete/:id', async (req, res) => {
     res.json(deletedUser);
   } catch (error) {
     console.error('Error deleting user by ID:', error);
-    res.send('Error');
+    res.send('Error in delete item');
   }
 });
+
 
 app.listen(port, () => {
   console.log(`App working on port ${port}`);
