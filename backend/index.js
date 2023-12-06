@@ -4,10 +4,11 @@ const app = express()
 const cors = require('cors')
 const mongoose = require('mongoose')
 const multer = require('multer')
+const fs = require('fs')
 const path = require('path')
 const port = 3001;
 
-mongoose.connect('mongodb://localhost:27017/main-crud-assignment', {})
+// mongoose.connect('mongodb://localhost:27017/main-crud-assignment', {})
 
 const userSchema = new mongoose.Schema({
   name: String,
@@ -35,22 +36,32 @@ const storage = multer.diskStorage({
   }
 })
 
-const upload = multer({ storage: storage })
+const upload = multer({ storage: storage });
+
+
 
 // Create User
-app.post('/form',upload.single('img'), async (req, res) => {
+
+app.post('/form', upload.single('img'), async (req, res) => {
   try {
-    const { name, email, password, } = req.body;
-    const existingUser = await UserModel.findOne({ email });
-    if (existingUser) {
-      return res.json({ message: 'User already exists' });
+    const { name, email, password } = req.body;
+
+    // Check if a file was uploaded
+    let imgURL = '';
+    if (req.file) {
+      imgURL = `http://localhost:3001/image/${req.file.filename}`;
     }
 
-    const newUser = new UserModel({ name, email, password,});
-    // imgURL:imgPath,
+    const newUser = new UserModel({
+      name: name,
+      email: email,
+      password: password,
+      imgURL: imgURL
+    });
+
     await newUser.save();
-    const imgPath = `http://localhost:3001/image/${req.file.filename}`
-    res.json({newUser,imgPath });
+
+    res.json({ newUser });
   } catch (error) {
     console.error('Error creating user:', error);
     res.json({ message: 'Error creating user' });
@@ -99,6 +110,10 @@ app.put('/edit/:id', async (req, res) => {
 app.delete('/delete/:id', async (req, res) => {
   try {
     const deletedUser = await UserModel.findByIdAndDelete(req.params.id);
+  if(deletedUser.imgURL){
+    const imageDel = path.join(__dirname, 'uploads', path.basename(deletedUser.imgURL));
+    fs.unlinkSync(imageDel)
+  }
     res.json(deletedUser);
   } catch (error) {
     console.error('Error deleting user by ID:', error);

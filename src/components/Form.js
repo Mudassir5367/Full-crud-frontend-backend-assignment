@@ -6,7 +6,7 @@ export default function Form() {
         name:'',
         email:'',
         password:'',
-        file:'',
+        file:null
     })
 
     const[getData, setGetData] = useState([])
@@ -17,23 +17,35 @@ export default function Form() {
         // const {name, email, password, file} = e.target;
         const name = e.target.name;
         const val = e.target.value;
+        
         console.log(name,val);
         setUser({...user, [name]:val})
     }
     const formHandle = (e) =>{
         e.preventDefault()
         // console.log(e);
+
+        const formData = new FormData();
+        formData.append('name', user.name);
+        formData.append('email', user.email);
+        formData.append('password', user.password);
+        formData.append('img', user.file);
+
         if(editItem){
-          updateData(editItem._id, user)
+          updateData(editItem._id, formData)
         }else{
-          createUser()
+          createUser(formData)
         }
     }
 
-      const createUser = () => {
+      const createUser = (formData) => {
         try {
         
-        axios.post('http://localhost:3001/form',user)
+        axios.post('http://localhost:3001/form',formData,{
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        })
         .then((response)=>{
             console.log(response.data);
         })
@@ -43,7 +55,7 @@ export default function Form() {
 
         setUser({ name: '', email:'', password:'', file:''})
         .catch((error)=>{
-          console.log('error in create user', error);
+          console.log('error in create m', error);
         })
       } catch (error) {
         console.log(error);
@@ -102,7 +114,8 @@ export default function Form() {
             <input className="custom-input" type='password' name='password' value={user.password} onChange={onchangeHandler}  placeholder='Enter Password' />
           </div>
           <div className="input-wrapper">
-            <input className="custom-input" type='file' name='file' value={user.file} onChange={onchangeHandler}  />
+          <input className="custom-input" type='file' name='file' onChange={(e) => setUser({ ...user, file: e.target.files[0] })} />
+
           </div>
           <div style={{ textAlign: 'center' }}>
             <button style={{ padding: '15px', width: "60%", color: 'gold', backgroundColor: 'indigo', border: 'none', borderRadius: '8px', marginBottom: '10px', cursor: 'pointer' }}>{editItem ? 'Update' : 'Submit'}</button>
@@ -111,7 +124,8 @@ export default function Form() {
       </div>
 
 
-      <table border = '1' style={{marginTop:'20px'}}>
+      <table border = '1' style={{marginTop: '20px',textAlign: 'center',marginLeft: 'auto',
+    marginRight: 'auto',}}>
         <tr>
         <th>Name</th>
         <th>Email</th>
@@ -128,7 +142,7 @@ export default function Form() {
                         <td>{data.name}</td>
                         <td>{data.email}</td>
                         <td>{data.password}</td>
-                        <td>{data.file}</td>
+                        <td>{data.imgURL}</td>
                         <td><button onClick={()=>removeData(data._id)} style={{backgroundColor:'indigo', color:'gold',width:'70px',border:'none',padding:'6px', cursor:'pointer'}} >Delete</button></td>
                         <td><button onClick={()=>editData(data._id)} style={{backgroundColor:'indigo', color:'gold',width:'70px',border:'none',padding:'6px', cursor:'pointer'}} >Edit</button></td>
                     </tr>
