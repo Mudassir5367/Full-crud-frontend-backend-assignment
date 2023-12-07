@@ -32,7 +32,7 @@ export default function Form() {
         formData.append('img', user.file);
 
         if(editItem){
-          updateData(editItem._id, formData)
+          updateData(editItem._id, user)
         }else{
           createUser(formData)
         }
